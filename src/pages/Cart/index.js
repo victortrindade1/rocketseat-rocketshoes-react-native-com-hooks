@@ -1,8 +1,5 @@
-import React, { Component } from 'react';
-import { Text } from 'react-native';
-
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import * as CartActions from '../../store/modules/cart/actions';
@@ -36,26 +33,38 @@ import {
   EmptyMsg,
 } from './styles';
 
-class Cart extends Component {
-  handleRemoveFromCart = (id) => {
-    const { removeFromCart } = this.props;
+export default function Cart() {
+  const cart = useSelector((state) =>
+    state.cart.map((product) => ({
+      ...product,
+      subtotal: formatPriceBRL(product.price * product.amount),
+    }))
+  );
 
-    removeFromCart(id);
-  };
+  const total = useSelector((state) =>
+    formatPriceBRL(
+      state.cart.reduce(
+        (totalSum, product) => totalSum + product.price * product.amount,
+        0 // valor inicial
+      )
+    )
+  );
 
-  handleAmountDown = (product) => {
-    const { updateAmountRequest } = this.props;
+  const dispatch = useDispatch();
 
-    updateAmountRequest(product.id, product.amount - 1);
-  };
+  function handleRemoveFromCart(id) {
+    dispatch(CartActions.removeFromCart(id));
+  }
 
-  handleAmountUp = (product) => {
-    const { updateAmountRequest } = this.props;
+  function handleAmountDown(product) {
+    dispatch(CartActions.updateAmountRequest(product.id, product.amount - 1));
+  }
 
-    updateAmountRequest(product.id, product.amount + 1);
-  };
+  function handleAmountUp(product) {
+    dispatch(CartActions.updateAmountRequest(product.id, product.amount + 1));
+  }
 
-  renderProduct = (product) => {
+  function renderProduct(product) {
     return (
       <Product>
         <ProductContainer>
@@ -68,15 +77,13 @@ class Cart extends Component {
             <Description>{product.title}</Description>
             <DescriptionPrice>{product.priceBRL}</DescriptionPrice>
           </DescriptionContainer>
-          <ProductDeleteButton
-            onPress={() => this.handleRemoveFromCart(product.id)}
-          >
+          <ProductDeleteButton onPress={() => handleRemoveFromCart(product.id)}>
             <Icon name="delete-forever" color={colors.primary} size={25} />
           </ProductDeleteButton>
         </ProductContainer>
         <AmountContainer>
           <AmountInputContainer>
-            <AmountButton onPress={() => this.handleAmountDown(product)}>
+            <AmountButton onPress={() => handleAmountDown(product)}>
               <Icon
                 name="remove-circle-outline"
                 color={colors.primary}
@@ -84,7 +91,7 @@ class Cart extends Component {
               />
             </AmountButton>
             <AmountInput>{product.amount}</AmountInput>
-            <AmountButton onPress={() => this.handleAmountUp(product)}>
+            <AmountButton onPress={() => handleAmountUp(product)}>
               <Icon
                 name="add-circle-outline"
                 color={colors.primary}
@@ -96,57 +103,32 @@ class Cart extends Component {
         </AmountContainer>
       </Product>
     );
-  };
-
-  // renderEmptyCart = () => <EmptyCart />;
-
-  render() {
-    const { cart, total } = this.props;
-
-    // console.tron.log(cart.length);
-    return (
-      <CartContainer>
-        {cart.length ? (
-          <>
-            <ProductList
-              data={cart}
-              keyExtractor={(product) => String(product.id)}
-              renderItem={({ item }) => this.renderProduct(item)}
-              ItemSeparatorComponent={() => <Separator />}
-            />
-            <TotalContainer>
-              <TotalLabel>TOTAL</TotalLabel>
-              <TotalNumber>{total}</TotalNumber>
-            </TotalContainer>
-            <SubmitButton>
-              <SubmitText>FINALIZAR PEDIDO</SubmitText>
-            </SubmitButton>
-          </>
-        ) : (
-          <EmptyCartContainer>
-            <Icon name="remove-shopping-cart" color="#ccc" size={80} />
-            <EmptyMsg>Seu carrinho está vazio</EmptyMsg>
-          </EmptyCartContainer>
-        )}
-      </CartContainer>
-    );
   }
+
+  return (
+    <CartContainer>
+      {cart.length ? (
+        <>
+          <ProductList
+            data={cart}
+            keyExtractor={(product) => String(product.id)}
+            renderItem={({ item }) => renderProduct(item)}
+            ItemSeparatorComponent={() => <Separator />}
+          />
+          <TotalContainer>
+            <TotalLabel>TOTAL</TotalLabel>
+            <TotalNumber>{total}</TotalNumber>
+          </TotalContainer>
+          <SubmitButton>
+            <SubmitText>FINALIZAR PEDIDO</SubmitText>
+          </SubmitButton>
+        </>
+      ) : (
+        <EmptyCartContainer>
+          <Icon name="remove-shopping-cart" color="#ccc" size={80} />
+          <EmptyMsg>Seu carrinho está vazio</EmptyMsg>
+        </EmptyCartContainer>
+      )}
+    </CartContainer>
+  );
 }
-
-const mapStateToProps = (state) => ({
-  cart: state.cart.map((product) => ({
-    ...product,
-    subtotal: formatPriceBRL(product.price * product.amount),
-  })),
-  total: formatPriceBRL(
-    state.cart.reduce(
-      (total, product) => total + product.price * product.amount,
-      0 // valor inicial
-    )
-  ),
-});
-
-const mapDispatchToProps = (dispatch) =>
-  bindActionCreators(CartActions, dispatch);
-
-export default connect(mapStateToProps, mapDispatchToProps)(Cart);
